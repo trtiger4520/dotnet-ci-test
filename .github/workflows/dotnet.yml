@@ -5,9 +5,8 @@ name: .NET
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    tags:
+      - "beta_v*.*.*" # Trigger on version tags
 
 jobs:
   build:
