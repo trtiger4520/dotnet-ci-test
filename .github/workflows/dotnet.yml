@@ -24,3 +24,20 @@ jobs:
         run: dotnet build --no-restore
       - name: Test
         run: dotnet test --no-build --verbosity normal
+      - name: Publish
+        run: dotnet publish -c Release -o ./publish --no-build
+      - name: Zip files
+        run: |
+          filename="$(TZ=Asia/Taipei date +%Y-%m-%d)"
+          zip -r "$filename.zip" ./publish
+      # cp to ssh server use scp with sshkey
+      - name: Copy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          scp -P $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$filename.zip" "$SSH_USER@$SSH_HOST:/c/$SSH_USER/"
+          ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "unzip -o /c/work/$filename.zip -d /c/work/$filename/"
