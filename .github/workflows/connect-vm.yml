@@ -1,0 +1,19 @@
+name: Connect VM
+
+on: "workflow_dispatch"
+
+jobs:
+  go-vm:
+    runs-on: ["self-hosted", "Linux", "X64"]
+
+    steps:
+      - name: Connect to VM
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "Write-Host 'Connected to VM'"
