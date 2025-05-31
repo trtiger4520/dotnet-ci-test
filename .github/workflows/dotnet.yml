@@ -8,6 +8,18 @@ on:
     tags:
       - "beta_v*.*.*" # Trigger on version tags
 
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      apps:
+        description: "Select the app to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - dotnet-ci-test
+          - dotnet-ci-tests
+
 jobs:
   build:
     runs-on: ["self-hosted", "Linux", "X64"]
@@ -25,12 +37,30 @@ jobs:
       - name: Test
         run: dotnet test --no-build --verbosity normal
       - name: Publish
-        run: dotnet publish -c Release -o ./publish --no-build
+        run: |
+          if [ "${{ github.event.inputs.apps }}" == "all" ]; then
+            echo "Building all apps"
+            dotnet publish -p ./dotnet-ci-test/dotnet-ci-test.csproj -c Release -o ./publish/dotnet-ci-test
+            dotnet publish -p ./dotnet-ci-tests/dotnet-ci-tests.csproj -c Release -o ./publish/dotnet-ci-tests
+            app_names=("dotnet-ci-test" "dotnet-ci-tests")
+          elif [ "${{ github.event.inputs.apps }}" != "" ]; then
+            echo "Building specified app: ${{ github.event.inputs.apps }}"
+            dotnet publish -c Release -o ./publish "./${{github.event.inputs.apps}}/${{github.event.inputs.apps}}.csproj"
+            app_names=("${{github.event.inputs.apps}}")
+          else
+            echo "No app specified, defaulting to dotnet-ci-test"
+            dotnet publish -c Release -o ./publish "./dotnet-ci-test/dotnet-ci-test.csproj"
+            app_names=("dotnet-ci-test")
+          fi
       - name: Zip files
         run: |
+          # Ensure filename
           filename="$(TZ=Asia/Taipei date +%Y-%m-%d)"
-          zip -r "$filename.zip" ./publish
-      # cp to ssh server use scp with sshkey
+          for app_name in "${app_names[@]}"; do
+            if [ -d "./publish/$app_name" ]; then
+              zip -r "${app_name}_${filename}.zip" "./publish/$app_name"
+            fi
+          done
       - name: Copy to server
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -38,6 +68,10 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
+          filename="$(TZ=Asia/Taipei date +%Y-%m-%d)"
           echo "$SSH_PRIVATE_KEY" > private_key
-          scp -P $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$filename.zip" "$SSH_USER@$SSH_HOST:/c/$SSH_USER/"
-          ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "unzip -o /c/work/$filename.zip -d /c/work/$filename/"
+          scp -P $SSH_PORT -i private_key -o StrictHostKeyChecking=no "*.zip" "$SSH_USER@$SSH_HOST:/inetpub/uploads/"
+          for app_name in "${app_names[@]}"; do
+            zip_file="${app_name}_${filename}.zip"
+            ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "Expand-Archive -Path '/inetpub/uploads/${zip_file}' -DestinationPath '/inetpub/wwwroot/${app_name}' -Force; Remove-Item '/inetpub/uploads/${zip_file}'"
+          done
