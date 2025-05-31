@@ -40,17 +40,17 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.apps }}" == "all" ]; then
             echo "Building all apps"
-            dotnet publish -p ./dotnet-ci-test/dotnet-ci-test.csproj -c Release -o ./publish/dotnet-ci-test
+            dotnet publish -p ./dotnet-ci/dotnet-ci-test.csproj -c Release -o ./publish/dotnet-ci
             dotnet publish -p ./dotnet-ci-tests/dotnet-ci-tests.csproj -c Release -o ./publish/dotnet-ci-tests
-            app_names=("dotnet-ci-test" "dotnet-ci-tests")
+            app_names=("dotnet-ci" "dotnet-ci-tests")
           elif [ "${{ github.event.inputs.apps }}" != "" ]; then
             echo "Building specified app: ${{ github.event.inputs.apps }}"
             dotnet publish -c Release -o ./publish "./${{github.event.inputs.apps}}/${{github.event.inputs.apps}}.csproj"
             app_names=("${{github.event.inputs.apps}}")
           else
             echo "No app specified, defaulting to dotnet-ci-test"
-            dotnet publish -c Release -o ./publish "./dotnet-ci-test/dotnet-ci-test.csproj"
-            app_names=("dotnet-ci-test")
+            dotnet publish -c Release -o ./publish "./dotnet-ci/dotnet-ci-test.csproj"
+            app_names=("dotnet-ci")
           fi
       - name: Zip files
         run: |
