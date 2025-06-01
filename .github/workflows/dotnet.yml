@@ -22,7 +22,7 @@ on:
 
 jobs:
   build:
-    runs-on: ["self-hosted", "Linux", "X64"]
+    runs-on: "self-hosted"
 
     steps:
       - uses: actions/checkout@v4
@@ -36,30 +36,32 @@ jobs:
         run: dotnet build --no-restore
       - name: Test
         run: dotnet test --no-build --verbosity normal
-      - name: Publish
+      - id: publish
+        name: Publish
         run: |
           if [ "${{ github.event.inputs.apps }}" == "all" ]; then
-            echo "Building all apps"
-            dotnet publish -p ./dotnet-ci/dotnet-ci-test.csproj -c Release -o ./publish/dotnet-ci
-            dotnet publish -p ./dotnet-ci-tests/dotnet-ci-tests.csproj -c Release -o ./publish/dotnet-ci-tests
             app_names=("dotnet-ci" "dotnet-ci-tests")
           elif [ "${{ github.event.inputs.apps }}" != "" ]; then
-            echo "Building specified app: ${{ github.event.inputs.apps }}"
-            dotnet publish -c Release -o ./publish "./${{github.event.inputs.apps}}/${{github.event.inputs.apps}}.csproj"
             app_names=("${{github.event.inputs.apps}}")
           else
-            echo "No app specified, defaulting to dotnet-ci-test"
-            dotnet publish -c Release -o ./publish "./dotnet-ci/dotnet-ci-test.csproj"
             app_names=("dotnet-ci")
           fi
+
+          for app_name in "${app_names[@]}"; do
+            echo "Publishing $app_name"
+            dotnet publish -c Release -o "./publish/$app_name" "./$app_name"
+          done
+
+          echo "app_names=$app_names" >> $GITHUB_OUTPUT
       - name: Zip files
         run: |
-          # Ensure filename
           filename="$(TZ=Asia/Taipei date +%Y-%m-%d)"
+          app_names=${{ steps.publish.outputs.app_names }}
+          echo "Zipping files for apps: $app_names"
           for app_name in "${app_names[@]}"; do
-            if [ -d "./publish/$app_name" ]; then
-              zip -r "${app_name}_${filename}.zip" "./publish/$app_name"
-            fi
+            echo "Zipping $app_name"
+            zip -r "./publish/${app_name}_${filename}.zip" "./publish/$app_name"
+            echo "Created zip file: ${app_name}_${filename}.zip"
           done
       - name: Copy to server
         env:
@@ -69,9 +71,13 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
           filename="$(TZ=Asia/Taipei date +%Y-%m-%d)"
+          app_names=${{ steps.publish.outputs.app_names }}
           echo "$SSH_PRIVATE_KEY" > private_key
-          scp -P $SSH_PORT -i private_key -o StrictHostKeyChecking=no "*.zip" "$SSH_USER@$SSH_HOST:/inetpub/uploads/"
+          chmod 600 private_key
+          scp -P $SSH_PORT -i private_key -o StrictHostKeyChecking=no ./publish/*.zip "$SSH_USER@$SSH_HOST:/inetpub/updates/"
           for app_name in "${app_names[@]}"; do
             zip_file="${app_name}_${filename}.zip"
-            ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "Expand-Archive -Path '/inetpub/uploads/${zip_file}' -DestinationPath '/inetpub/wwwroot/${app_name}' -Force; Remove-Item '/inetpub/uploads/${zip_file}'"
+            ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no \
+              "$SSH_USER@$SSH_HOST" \
+              "Expand-Archive -Path '/inetpub/updates/${zip_file}' -DestinationPath '/inetpub/wwwroot/${app_name}' -Force; Remove-Item '/inetpub/updates/${zip_file}'"
           done

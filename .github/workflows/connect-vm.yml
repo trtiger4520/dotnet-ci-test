@@ -4,7 +4,7 @@ on: "workflow_dispatch"
 
 jobs:
   go-vm:
-    runs-on: ["self-hosted", "Linux", "X64"]
+    runs-on: "self-hosted"
 
     steps:
       - name: Connect to VM

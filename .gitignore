@@ -6,6 +6,10 @@
 # dotenv files
 .env
 
+# secrets files
+.secret
+.secrets
+
 # User-specific files
 *.rsuser
 *.suo
