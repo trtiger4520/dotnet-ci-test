@@ -79,5 +79,7 @@ jobs:
             zip_file="${app_name}_${filename}.zip"
             ssh -p $SSH_PORT -i private_key -o StrictHostKeyChecking=no \
               "$SSH_USER@$SSH_HOST" \
-              "Expand-Archive -Path '/inetpub/updates/${zip_file}' -DestinationPath '/inetpub/wwwroot/${app_name}' -Force; Remove-Item '/inetpub/updates/${zip_file}'"
+              "Remove-Item -Path '/inetpub/wwwroot/${app_name}' -Recurse -Force -ErrorAction SilentlyContinue; \
+              Expand-Archive -Path '/inetpub/updates/${zip_file}' -DestinationPath '/inetpub/wwwroot/${app_name}' -Force; \
+              Remove-Item '/inetpub/updates/${zip_file}'"
           done
