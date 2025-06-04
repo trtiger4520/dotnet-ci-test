@@ -60,8 +60,10 @@ jobs:
           echo "Zipping files for apps: $app_names"
           for app_name in "${app_names[@]}"; do
             echo "Zipping $app_name"
-            zip -r "./publish/${app_name}_${filename}.zip" "./publish/$app_name"
+            cd "./publish/$app_name" || exit 1
+            zip -r "../${app_name}_${filename}.zip" .
             echo "Created zip file: ${app_name}_${filename}.zip"
+            cd ../..
           done
       - name: Copy to server
         env:
