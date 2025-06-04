@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet-ci", "dotnet-ci", "{E7DA9F64-B49B-8E19-C2B7-55894A3E8859}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-ci-test", "dotnet-ci\dotnet-ci-test.csproj", "{30B1914B-FA22-4027-AC26-0A1351F88AA6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-ci", "dotnet-ci\dotnet-ci.csproj", "{30B1914B-FA22-4027-AC26-0A1351F88AA6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-ci-tests", "dotnet-ci-tests\dotnet-ci-tests.csproj", "{6A54E9B4-DD05-4941-AD8D-571B9A9BE4B7}"
 EndProject
